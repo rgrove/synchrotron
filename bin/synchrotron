@@ -1,0 +1,50 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'trollop'
+
+require 'synchrotron'
+
+module Synchrotron
+  config = {}
+
+  # Parse command-line options.
+  options = Trollop.options do
+    version "#{APP_NAME} #{APP_VERSION}\n" << APP_COPYRIGHT
+    banner <<-BANNER
+Synchrotron monitors a local directory tree and performs nearly instantaneous
+one-way synchronization of changes to a remote directory.
+
+Usage:
+  synchrotron <remote dir> [local dir]
+BANNER
+
+    text "\nOptions:"
+    opt :dry_run,      "Show what would have been synced, but don't sync it", :short => '-n'
+    opt :exclude,      "Pathname or pattern to exclude", :short => :none, :multi => true, :type => :string
+    opt :exclude_from, "File containing pathnames and patterns to exclude", :short => :none, :multi => true, :type => :string
+    opt :rsync_path,   "Path to the rsync binary", :short => :none, :default => '/usr/bin/rsync'
+    opt :verbosity,    "Output verbosity: debug, info, warn, error, or fatal", :short => '-V', :default => 'info'
+  end
+
+  config[:remote_path] = ARGV.shift or abort("Error: Remote path not specified")
+  config[:local_path]  = File.expand_path(ARGV.shift || '.') + '/'
+
+  config.merge!(options)
+
+  config[:exclude]      ||= []
+  config[:exclude_from] ||= []
+
+  # Validate options.
+  abort("Error: Directory not found: #{config[:local_path]}") unless File.exist?(config[:local_path])
+  abort("Error: Not a directory: #{config[:local_path]}") unless File.directory?(config[:local_path])
+  abort("Error: rsync not found at #{config[:rsync_path]}") unless File.exist?(config[:rsync_path])
+
+  Synchrotron.init(config)
+
+  Synchrotron.log.info "Performing initial sync..."
+  Synchrotron.sync
+
+  Synchrotron.monitor
+
+end
