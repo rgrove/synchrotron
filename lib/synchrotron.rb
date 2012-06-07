@@ -1,13 +1,7 @@
-# Prepend this file's directory to the include path if it's not there already.
-$:.unshift(File.dirname(File.expand_path(__FILE__)))
-$:.uniq!
-
 require 'find'
 require 'pathname'
-require 'set'
-require 'osx/foundation'
 
-OSX.require_framework '/System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework'
+require 'rb-fsevent'
 
 require 'synchrotron/ignore'
 require 'synchrotron/logger'
@@ -38,29 +32,16 @@ module Synchrotron; class << self
       :verbosity  => :info
     }.merge(config)
 
-    @log       = Logger.new(@config[:verbosity])
     @ignore    = Ignore.new(@config[:exclude])
+    @log       = Logger.new(@config[:verbosity])
     @regex_rel = Regexp.new("^#{Regexp.escape(@config[:local_path].chomp('/'))}/?")
+    @queue     = Queue.new
 
     @config[:rsync_options] << '--dry-run' if @config[:dry_run]
 
     local_exclude_file = File.join(@config[:local_path], '.synchrotron-exclude')
     @config[:exclude_from] << local_exclude_file if File.exist?(local_exclude_file)
     @config[:exclude_from].each {|filename| @ignore.add_file(filename) }
-
-    @callback = proc do |stream, context, event_count, paths, marks, event_ids|
-      changed = Set.new
-      paths.regard_as('*')
-      event_count.times {|i| changed.add(paths[i]) unless @ignore.match(paths[i]) }
-
-      changed = coalesce_changes(changed)
-      return if changed.empty?
-
-      @log.info "Change detected"
-      changed.each {|path| sync(path) }
-    end
-
-    @stream  = Stream.new(config[:local_path], @callback)
 
     @log.info "Local path : #{@config[:local_path]}"
     @log.info "Remote path: #{@config[:remote_path]}"
@@ -85,13 +66,21 @@ module Synchrotron; class << self
 
   def monitor
     @log.info "Watching for changes"
-    @stream.start
 
-    begin
-      OSX.CFRunLoopRun()
-    rescue Interrupt
-      @stream.release
+    @sync_thread = Thread.new do
+      while changed = @queue.pop do
+        @log.info "Change detected"
+        changed.each {|path| sync(path) if File.exist?(path) }
+      end
     end
+
+    fsevent = FSEvent.new
+    fsevent.watch(@config[:local_path], {:latency => 5, :no_defer => true}) do |paths|
+      changed = coalesce_changes(paths.reject {|path| @ignore.match(path) })
+      @queue << changed unless changed.empty?
+    end
+
+    fsevent.run
   end
 
   def relative_path(path)
