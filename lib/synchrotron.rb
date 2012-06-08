@@ -1,5 +1,6 @@
 require 'find'
 require 'pathname'
+require 'thread'
 
 require 'rb-fsevent'
 
@@ -21,8 +22,10 @@ module Synchrotron; class << self
 
       :rsync_options => [
         '--compress',
+        '--delete',
         '--human-readable',
         '--links',
+        '--perms',
         '--recursive',
         '--times',
         '--verbose'

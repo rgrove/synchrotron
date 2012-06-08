@@ -46,7 +46,7 @@ module Synchrotron; class Ignore
       lineno += 1
 
       # Strip comments.
-      line.sub!(REGEX_COMMENT, '')
+      line = line.sub(REGEX_COMMENT, '')
       line.strip!
 
       # Skip empty lines.
