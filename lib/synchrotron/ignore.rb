@@ -66,7 +66,7 @@ module Synchrotron; class Ignore
 
   def glob_to_regex(str)
     regex = str.gsub(/(.)/) {|c| GLOB_PATTERNS[$1] || Regexp.escape(c) }
-    Regexp.new("#{regex}$")
+    Regexp.new("#{regex}\\Z")
   end
 
 end; end
