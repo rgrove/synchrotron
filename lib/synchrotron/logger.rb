@@ -4,12 +4,12 @@ class Logger
   attr_reader :level, :output
 
   LEVELS = {
-    :fatal  => 0,
-    :error  => 1,
-    :warn   => 2,
-    :info   => 3,
-    :debug  => 4,
-    :insane => 5
+    :fatal   => 0,
+    :error   => 1,
+    :warn    => 2,
+    :info    => 3,
+    :verbose => 4,
+    :debug   => 5
   }
 
   def initialize(level = :info, output = $stdout)

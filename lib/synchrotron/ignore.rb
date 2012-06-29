@@ -4,13 +4,13 @@ module Synchrotron; class Ignore
   REGEX_COMMENT = /#.*$/
   REGEX_REGEX   = /^\s*(%r(.).*\2[imxouesn]*)\s*$/i
 
-  def initialize(list = [])
+  def initialize(list = [], logger)
     @cache    = {}
     @globs    = []
     @regexes  = []
 
     @list     = list.to_a
-    @log      = Synchrotron.log
+    @log      = logger
 
     compile(@list)
   end
@@ -31,7 +31,7 @@ module Synchrotron; class Ignore
     @cache[_path] = match = @globs.any? {|glob| _path =~ glob } ||
         @regexes.any? {|regex| _path =~ regex }
 
-    @log.insane "Ignoring #{_path}" if match
+    @log.verbose "Ignoring #{_path}" if match
     match
   end
 

@@ -25,18 +25,18 @@ module Synchrotron; class << self
         '--delete',
         '--human-readable',
         '--links',
+        '--out-format="--> [%o] %n %L"',
         '--perms',
         '--recursive',
-        '--times',
-        '--verbose'
+        '--times'
       ],
 
       :rsync_path => '/usr/bin/rsync',
       :verbosity  => :info
     }.merge(config)
 
-    @ignore    = Ignore.new(@config[:exclude])
     @log       = Logger.new(@config[:verbosity])
+    @ignore    = Ignore.new(@config[:exclude], @log)
     @regex_rel = Regexp.new("^#{Regexp.escape(@config[:local_path].chomp('/'))}/?")
     @queue     = Queue.new
 
@@ -72,13 +72,15 @@ module Synchrotron; class << self
 
     @sync_thread = Thread.new do
       while changed = @queue.pop do
-        @log.info "Change detected"
+        @log.verbose "Change detected"
+
+        changed.each {|path| @log.verbose "--> #{path}" }
         changed.each {|path| sync(path) if File.exist?(path) }
       end
     end
 
     fsevent = FSEvent.new
-    fsevent.watch(@config[:local_path], {:latency => 5, :no_defer => true}) do |paths|
+    fsevent.watch(@config[:local_path], {:latency => 1}) do |paths|
       changed = coalesce_changes(paths.reject {|path| @ignore.match(path) })
       @queue << changed unless changed.empty?
     end
@@ -99,8 +101,11 @@ module Synchrotron; class << self
     @config[:exclude].each {|p| rsync_options << " --exclude #{escape_arg(p)}" }
     @config[:exclude_from].each {|f| rsync_options << " --exclude-from #{escape_arg(f)}"}
 
-    puts `#{@config[:rsync_path]} #{rsync_options} #{rsync_local} #{rsync_remote}`
-    puts
+    rsync_cmd = "#{@config[:rsync_path]} #{rsync_options} #{rsync_local} #{rsync_remote}"
+
+    @log.debug rsync_cmd
+
+    `#{rsync_cmd}`.each_line {|line| @log.info line }
   end
 
   private
