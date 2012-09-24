@@ -4,7 +4,7 @@ module Synchrotron; class Ignore
   REGEX_COMMENT = /#.*$/
   REGEX_REGEX   = /^\s*(%r(.).*\2[imxouesn]*)\s*$/i
 
-  def initialize(list = [], logger)
+  def initialize(list = [], logger = nil)
     @cache    = {}
     @globs    = []
     @regexes  = []
