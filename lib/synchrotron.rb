@@ -97,6 +97,12 @@ module Synchrotron; class << self
     rsync_options = @config[:rsync_options].join(' ')
     rsync_remote  = escape_arg(File.join(@config[:remote_path], relative_path(path)))
 
+    if /GIT_BRANCH/.match(rsync_remote)
+      git_branch = `git symbolic-ref HEAD`[/\/([^\/]*)$/,1].chomp
+      @log.debug "git branch is '#{git_branch}'."
+      rsync_remote.gsub!(/GIT_BRANCH/,git_branch)
+    end
+
     # Build exclusion list.
     @config[:exclude].each {|p| rsync_options << " --exclude #{escape_arg(p)}" }
     @config[:exclude_from].each {|f| rsync_options << " --exclude-from #{escape_arg(f)}"}
