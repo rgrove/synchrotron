@@ -15,7 +15,7 @@ Gem::Specification.new do |s|
   s.required_rubygems_version = Gem::Requirement.new('>= 1.2.0')
 
   # Runtime dependencies.
-  s.add_dependency('rb-fsevent', '~> 0.9.1')
+  s.add_dependency('rb-fsevent', '~> 0.9.3')
   s.add_dependency('trollop', '~> 1.13')
 
   s.require_paths = ['lib']
