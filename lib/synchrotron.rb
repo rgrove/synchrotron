@@ -3,7 +3,6 @@ require 'pathname'
 require 'thread'
 
 require 'rb-fsevent'
-require 'terminal-notifier'
 
 require 'synchrotron/ignore'
 require 'synchrotron/logger'
@@ -115,7 +114,8 @@ module Synchrotron; class << self
     lines = 0
     `#{rsync_cmd}`.each_line {|line| @log.info line; lines = lines + 1 }
     
-    if lines > 0
+    if @config[:notify] && lines > 0
+      require 'terminal-notifier'
       TerminalNotifier.notify("Synced #{lines} files to #{rsync_remote}", :title => 'Synchrotron', :Group=>Process.pid)
     end
   end
