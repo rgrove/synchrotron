@@ -25,6 +25,7 @@ BANNER
     opt :exclude_from, "File containing pathnames and patterns to exclude", :short => :none, :multi => true, :type => :string
     opt :rsync_path,   "Path to the rsync binary", :short => :none, :default => '/usr/bin/rsync'
     opt :verbosity,    "Output verbosity: debug, verbose, info, warn, error, or fatal", :short => '-V', :default => 'info'
+    opt :notify,       "Alert via OS/X Notifications when finished synchronizing to remote", :short => :none
   end
 
   config[:remote_path] = ARGV.shift or abort("Error: Remote path not specified")
