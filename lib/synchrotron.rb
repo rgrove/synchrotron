@@ -113,10 +113,14 @@ module Synchrotron; class << self
 
     lines = 0
     `#{rsync_cmd}`.each_line {|line| @log.info line; lines = lines + 1 }
-    
+
     if @config[:notify] && lines > 0
       require 'terminal-notifier'
-      TerminalNotifier.notify("Synced #{lines} files to #{rsync_remote}", :title => 'Synchrotron', :Group=>Process.pid)
+
+      TerminalNotifier.notify("Synced #{lines} files to #{rsync_remote}",
+          :title  => 'Synchrotron',
+          :sender => 'com.apple.Terminal',
+          :group  => Process.pid)
     end
   end
 

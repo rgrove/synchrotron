@@ -16,7 +16,7 @@ Gem::Specification.new do |s|
 
   # Runtime dependencies.
   s.add_dependency('rb-fsevent', '~> 0.9.3')
-  s.add_dependency('terminal-notifier', '~> 1.4.2')
+  s.add_dependency('terminal-notifier', '~> 1.5.1')
   s.add_dependency('trollop', '~> 1.13')
 
   s.require_paths = ['lib']
