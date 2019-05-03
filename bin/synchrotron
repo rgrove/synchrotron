@@ -3,7 +3,8 @@
 require 'rubygems'
 require 'trollop'
 
-require 'synchrotron'
+require_relative '../lib/synchrotron'
+
 
 module Synchrotron
   config = {}

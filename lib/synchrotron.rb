@@ -1,13 +1,12 @@
 require 'find'
 require 'pathname'
+require 'rb-fsevent'
 require 'thread'
 
-require 'rb-fsevent'
-
-require 'synchrotron/ignore'
-require 'synchrotron/logger'
-require 'synchrotron/stream'
-require 'synchrotron/version'
+require_relative 'synchrotron/ignore'
+require_relative 'synchrotron/logger'
+require_relative 'synchrotron/stream'
+require_relative 'synchrotron/version'
 
 module Synchrotron; class << self
   attr_reader :config, :ignore, :log, :scanner
