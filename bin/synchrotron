@@ -5,6 +5,7 @@ require 'trollop'
 
 require_relative '../lib/synchrotron'
 
+Thread.abort_on_exception = true
 
 module Synchrotron
   config = {}
