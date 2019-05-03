@@ -1,6 +1,6 @@
 module Synchrotron
   APP_NAME      = 'Synchrotron'
-  APP_VERSION   = '0.0.8'
+  APP_VERSION   = '0.1.0.beta.1'
   APP_AUTHOR    = 'Ryan Grove'
   APP_EMAIL     = 'ryan@wonko.com'
   APP_URL       = 'http://github.com/rgrove/synchrotron/'
