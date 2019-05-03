@@ -9,6 +9,12 @@ require_relative 'synchrotron/stream'
 require_relative 'synchrotron/version'
 
 module Synchrotron; class << self
+  # If more than this many paths change at once, we'll just do a full resync.
+  MAX_CHANGED_PATHS = 1
+
+  # If the change queue exceeds this size, we'll clear it and do a full resync.
+  MAX_QUEUE_SIZE = 1
+
   attr_reader :config, :ignore, :log, :scanner
 
   def init(config = {})
@@ -71,15 +77,28 @@ module Synchrotron; class << self
 
     @sync_thread = Thread.new do
       while changed = @queue.pop do
-        @log.verbose "Change detected"
+        @log.verbose "#{changed.size} changed path(s) detected (change sets in queue: #{@queue.size})"
 
         changed.each {|path| @log.verbose "--> #{path}" }
-        changed.each {|path| sync(path) if File.exist?(path) }
+
+        if @queue.size > MAX_QUEUE_SIZE
+          @log.verbose "Syncing the root path since the queue is too large (#{@queue.size})"
+          @queue.clear
+          sync
+        elsif changed.size > MAX_CHANGED_PATHS
+          @log.verbose "Syncing the root path since more than #{MAX_CHANGED_PATHS} path(s) changed"
+          sync
+        else
+          changed.each {|path| sync(path) if File.exist?(path) }
+        end
       end
     end
 
     fsevent = FSEvent.new
-    fsevent.watch(@config[:local_path], {:latency => 1}) do |paths|
+    fsevent.watch(@config[:local_path], {
+      :latency => 1,
+      :no_defer => false
+    }) do |paths|
       changed = coalesce_changes(paths.reject {|path| @ignore.match(path) })
       @queue << changed unless changed.empty?
     end
