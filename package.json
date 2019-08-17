@@ -1,0 +1,42 @@
+{
+  "name": "@rgrove/synchrotron",
+  "version": "1.0.0-beta.1",
+  "description": "Monitors a source directory and syncs files to a destination directory when changes occur.",
+  "keywords": [
+    "sync",
+    "synchronize",
+    "rsync"
+  ],
+  "author": "Ryan Grove",
+  "license": "ISC",
+  "homepage": "https://github.com/rgrove/synchrotron#readme",
+  "bugs": {
+    "url": "https://github.com/rgrove/synchrotron/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rgrove/synchrotron.git"
+  },
+  "engines": {
+    "node": ">=10"
+  },
+  "main": "lib/Synchrotron.js",
+  "bin": {
+    "synchrotron": "./bin/cli.js"
+  },
+  "dependencies": {
+    "chalk": "^2.4.2",
+    "chokidar": "^3.0.2",
+    "find-up": "^4.1.0",
+    "graceful-fs": "^4.2.2",
+    "ora": "^3.4.0",
+    "yargs": "^13.3.0"
+  },
+  "devDependencies": {
+    "@rgrove/eslint-config": "^1.2.0",
+    "eslint": "^6.1.0"
+  },
+  "scripts": {
+    "lint": "eslint ."
+  }
+}

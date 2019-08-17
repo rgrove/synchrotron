@@ -1,3 +1,1 @@
-pkg/
-*.gem
-Gemfile.lock
+node_modules/
