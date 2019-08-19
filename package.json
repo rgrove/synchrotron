@@ -1,6 +1,6 @@
 {
   "name": "@rgrove/synchrotron",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-beta.2",
   "description": "Monitors a source directory and syncs files to a destination directory when changes occur.",
   "keywords": [
     "sync",
