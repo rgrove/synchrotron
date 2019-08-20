@@ -9,8 +9,8 @@ const fs = require('graceful-fs');
 const ora = require('ora');
 const yargs = require('yargs');
 
-const Logger = require('../lib/util/Logger');
-const parseConfigFile = require('../lib/util/parseConfigFile');
+const Logger = require('../lib/Logger');
+const parseConfigFile = require('../lib/parseConfigFile');
 const Synchrotron = require('../lib/Synchrotron');
 
 // -- Init ---------------------------------------------------------------------
