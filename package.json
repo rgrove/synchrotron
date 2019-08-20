@@ -30,11 +30,11 @@
     "find-up": "^4.1.0",
     "graceful-fs": "^4.2.2",
     "ora": "^3.4.0",
-    "yargs": "^13.3.0"
+    "yargs": "^14.0.0"
   },
   "devDependencies": {
     "@rgrove/eslint-config": "^1.2.0",
-    "eslint": "^6.1.0"
+    "eslint": "^6.2.0"
   },
   "scripts": {
     "lint": "eslint ."
