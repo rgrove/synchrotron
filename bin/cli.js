@@ -45,6 +45,12 @@ const cliOptions = yargs
   .help('help')
   .alias('help', 'h')
 
+  .option('ignore-path', {
+    desc: 'Path to a file containing filename and directory patterns to ignore',
+    normalize: true,
+    type: 'string'
+  })
+
   .option('no-color', {
     desc: 'Disable colors in CLI output',
     type: 'boolean'
@@ -121,12 +127,20 @@ main().catch(err => {
 
 // -- Private Functions --------------------------------------------------------
 async function main() {
-  await addIgnorePathToOptions();
-
-  addDefaultsToOptions();
+  await addDefaultsToOptions();
   validateOptions();
 
   log.debug('cliOptions:', cliOptions);
+
+  if (cliOptions.dryRun) {
+    log.header('Dry run mode is enabled. Changes will only be simulated.');
+  }
+
+  if (cliOptions.ignorePath) {
+    log.header(`Using ignore file ${chalk.blue(cliOptions.ignorePath)}`);
+  }
+
+  log.header(`Syncing ${chalk.blue(cliOptions.source)} to ${chalk.blue(cliOptions.dest)}`);
 
   let synchrotron = new Synchrotron(cliOptions.dest, cliOptions.source, {
     dryRun: cliOptions.dryRun,
@@ -134,12 +148,6 @@ async function main() {
     logger: log,
     rsyncPath: cliOptions.rsyncPath
   });
-
-  if (cliOptions.dryRun) {
-    log.header('Dry run mode is enabled. Changes will only be simulated.');
-  }
-
-  log.header(`Syncing ${chalk.blue(cliOptions.source)} to ${chalk.blue(cliOptions.dest)}`);
 
   let spinner = ora();
 
@@ -193,19 +201,22 @@ async function main() {
   log.header(`Watching for changes in ${chalk.blue(cliOptions.source)}`);
 }
 
-function addDefaultsToOptions() {
+async function addDefaultsToOptions() {
   Object.assign(cliOptions, {
     ...defaultOptions,
     ...cliOptions
   });
-}
 
-async function addIgnorePathToOptions() {
-  let ignorePath = await findUp('.synchrotron-ignore', { cwd: cliOptions.source });
+  log.threshold = cliOptions.verbosity;
 
-  if (ignorePath) {
-    log.header(`Using ignore file ${chalk.blue(ignorePath)}`);
-    cliOptions.ignorePath = ignorePath; // eslint-disable-line require-atomic-updates
+  if (!cliOptions.ignorePath) {
+    if (cliOptions.excludeFrom) {
+      // Ruby Synchrotron backcompat.
+      log.warn(`The ${chalk.blue('--exclude-from')} option is deprecated. Use ${chalk.blue('--ignore-path')} instead.`);
+      cliOptions.ignorePath = cliOptions.excludeFrom;
+    } else {
+      cliOptions.ignorePath = await findUp('.synchrotron-ignore', { cwd: cliOptions.source }); // eslint-disable-line require-atomic-updates
+    }
   }
 }
 
@@ -214,10 +225,18 @@ function validateOptions() {
     log.fatal(`No sync destination was specified. Use ${chalk.blue('--dest')} to specify a destination.`);
   }
 
+  if (cliOptions.ignorePath) {
+    try {
+      fs.accessSync(cliOptions.ignorePath, fs.constants.R_OK);
+    } catch (_) {
+      log.fatal(`The ignore file ${chalk.blue(cliOptions.ignorePath)} was not found or is not readable.`);
+    }
+  }
+
   try {
     fs.accessSync(cliOptions.rsyncPath, fs.constants.X_OK);
   } catch (_) {
-    log.fatal(`rsync path ${chalk.blue(cliOptions.rsyncPath)} was not found or cannot be executed. Use ${chalk.blue('--rsync-path')} to specify the path to an rsync executable.`);
+    log.fatal(`Rsync path ${chalk.blue(cliOptions.rsyncPath)} was not found or cannot be executed. Use ${chalk.blue('--rsync-path')} to specify the path to an Rsync executable.`);
   }
 
   cliOptions.source = path.resolve(cliOptions.source);
