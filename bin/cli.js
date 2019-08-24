@@ -28,7 +28,7 @@ const log = new Logger();
 const nodeMajorVersion = process.versions.node.split('.', 1)[0];
 
 const cliOptions = yargs
-  .usage('$0', 'Monitors a source directory and syncs files to a destination directory when changes occur.')
+  .usage('$0', 'Watches a local directory and syncs files to another directory or a remote destination using rsync whenever changes occur.')
   .group([ 'dest', 'source' ], chalk.bold('Primary Options:'))
 
   .option('dest', {
