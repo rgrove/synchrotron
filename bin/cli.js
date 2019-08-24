@@ -219,6 +219,11 @@ async function main() {
           message: `Synced ${stats.itemsSynced} ${itemsText} to ${cliOptions.dest}`
         });
       }
+    })
+
+    .on('warning', ({ message }) => {
+      spinner.stop();
+      log.info(chalk.yellow('!'), message);
     });
 
   if (!cliOptions.once) {
