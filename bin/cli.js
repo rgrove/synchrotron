@@ -7,9 +7,11 @@ const chalk = require('chalk');
 const findUp = require('find-up');
 const fs = require('graceful-fs');
 const ora = require('ora');
+const updateNotifier = require('update-notifier');
 const yargs = require('yargs');
 
 const Logger = require('../lib/Logger');
+const pkg = require('../package.json');
 const Synchrotron = require('../lib/Synchrotron');
 
 // -- Init ---------------------------------------------------------------------
@@ -127,6 +129,8 @@ main().catch(err => {
 
 // -- Private Functions --------------------------------------------------------
 async function main() {
+  updateNotifier({ pkg }).notify();
+
   await addDefaultsToOptions();
   validateOptions();
 
