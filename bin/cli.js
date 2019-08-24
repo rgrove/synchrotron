@@ -10,7 +10,6 @@ const ora = require('ora');
 const yargs = require('yargs');
 
 const Logger = require('../lib/Logger');
-const parseConfigFile = require('../lib/parseConfigFile');
 const Synchrotron = require('../lib/Synchrotron');
 
 // -- Init ---------------------------------------------------------------------
@@ -31,14 +30,6 @@ const nodeMajorVersion = process.versions.node.split('.', 1)[0];
 const cliOptions = yargs
   .usage('$0', 'Monitors a source directory and syncs files to a destination directory when changes occur.')
   .group([ 'dest', 'source' ], chalk.bold('Primary Options:'))
-
-  .option('config', {
-    desc: 'Path to a JSON config file',
-    config: true,
-    configParser: parseConfigFile,
-    normalize: true,
-    requiresArg: true,
-  })
 
   .option('dest', {
     desc: 'Destination to sync files to, as an rsync-compatible path [required]',
@@ -83,12 +74,10 @@ const cliOptions = yargs
   })
 
   .version()
-
   .parserConfiguration({
     'strip-aliased': true,
     'strip-dashed': true
   })
-  .pkgConf('synchrotron')
   .updateStrings({
     'Options:': chalk.bold('Other Options:')
   })
@@ -132,7 +121,6 @@ main().catch(err => {
 
 // -- Private Functions --------------------------------------------------------
 async function main() {
-  await addConfigToOptions();
   await addIgnorePathToOptions();
 
   addDefaultsToOptions();
@@ -191,8 +179,8 @@ async function main() {
     });
 
   if (!cliOptions.once) {
-    // We start watching before we actually do the initial sync so that any
-    // changes that occur during the initial sync won't be missed.
+    // Start watching before running the initial sync so that any changes that
+    // occur during the initial sync won't be missed.
     synchrotron.watch();
   }
 
@@ -203,59 +191,6 @@ async function main() {
   }
 
   log.header(`Watching for changes in ${chalk.blue(cliOptions.source)}`);
-}
-
-async function addConfigToOptions() {
-  // Set the log threshold up front in case it was specified on the command
-  // line.
-  if (cliOptions.verbosity) {
-    log.threshold = cliOptions.verbosity;
-  }
-
-  if (cliOptions.config) {
-    // A config file was specified via the `--config` command line option, so
-    // yargs will have already loaded it.
-    log.header(`Using config file ${chalk.blue(path.resolve(cliOptions.config))}`);
-    return;
-  }
-
-  // No config file was specified on the command line, so search for a
-  // `synchrotron.json` file.
-  let configPath = await findUp('synchrotron.json', { cwd: cliOptions.source });
-
-  if (configPath) {
-    let configOptions;
-
-    try {
-      configOptions = parseConfigFile(configPath);
-    } catch (err) {
-      log.fatal(`Unable to load config file ${chalk.blue(configPath)}\n${chalk.gray(err.message)}`);
-    }
-
-    // Mix the config file options into `options`, but ensure that any existing
-    // options (which were set either on the command line or in `package.json`)
-    // take precedence.
-    //
-    // The order of precedence from highest to lowest is:
-    //
-    // 1.  command line
-    // 2.  `synchrotron` property in package.json
-    // 3.  config file
-    //
-    // So if the same option is set in all three places, the command line wins.
-    Object.assign(cliOptions, {
-      ...configOptions,
-      ...cliOptions
-    });
-
-    // Set the log threshold again in case it was changed in the loaded config
-    // file.
-    if (cliOptions.verbosity) {
-      log.threshold = cliOptions.verbosity;
-    }
-
-    log.header(`Using config file ${chalk.blue(configPath)}`);
-  }
 }
 
 function addDefaultsToOptions() {
