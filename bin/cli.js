@@ -6,6 +6,7 @@ const path = require('path');
 const chalk = require('chalk');
 const findUp = require('find-up');
 const fs = require('graceful-fs');
+const notifier = require('node-notifier');
 const ora = require('ora');
 const updateNotifier = require('update-notifier');
 const yargs = require('yargs');
@@ -55,6 +56,11 @@ const cliOptions = yargs
 
   .option('no-color', {
     desc: 'Disable colors in CLI output',
+    type: 'boolean'
+  })
+
+  .option('notify', {
+    desc: 'Display a system notification when a sync operation completes or an error occurs',
     type: 'boolean'
   })
 
@@ -120,10 +126,28 @@ process.on('unhandledRejection', reason => {
     return;
   }
 
+  if (cliOptions.notify) {
+    try {
+      notifier.notify({
+        title: 'Synchrotron',
+        message: `Fatal error: ${reason.message || reason}`
+      });
+    } catch (_) {} // eslint-disable-line no-empty
+  }
+
   log.fatal(reason.message || reason);
 });
 
 main().catch(err => {
+  if (cliOptions.notify) {
+    try {
+      notifier.notify({
+        title: 'Synchrotron',
+        message: `Fatal error: ${err.message || err}`
+      });
+    } catch (_) {} // eslint-disable-line no-empty
+  }
+
   log.fatal(err.message);
 });
 
@@ -188,6 +212,13 @@ async function main() {
 
       let itemsText = stats.itemsSynced === 1 ? 'item' : 'items';
       log.ok(`${chalk.gray(new Date().toLocaleTimeString())} Synced ${stats.itemsSynced} ${itemsText} to ${chalk.blue(cliOptions.dest)}`);
+
+      if (cliOptions.notify) {
+        notifier.notify({
+          title: 'Synchrotron',
+          message: `Synced ${stats.itemsSynced} ${itemsText} to ${cliOptions.dest}`
+        });
+      }
     });
 
   if (!cliOptions.once) {

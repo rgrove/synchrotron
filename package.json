@@ -29,6 +29,7 @@
     "chokidar": "^3.0.2",
     "find-up": "^4.1.0",
     "graceful-fs": "^4.2.2",
+    "node-notifier": "^5.4.3",
     "ora": "^3.4.0",
     "update-notifier": "^3.0.1",
     "yargs": "^14.0.0"
