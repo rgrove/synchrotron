@@ -15,166 +15,42 @@ const Logger = require('../lib/Logger');
 const pkg = require('../package.json');
 const Synchrotron = require('../lib/Synchrotron');
 
-// -- Init ---------------------------------------------------------------------
-
-// Default option values are applied manually instead of being specifed as yargs
-// defaults. This makes it possible to ensure that defaults don't override
-// values that are specified in an automatically discovered config file, which
-// yargs won't know about.
-const defaultOptions = {
-  rsyncPath: '/usr/bin/rsync',
-  source: process.cwd(),
-  verbosity: Logger.LEVEL_INFO
+// -- Constants ----------------------------------------------------------------
+const cliState = {
+  argv: process.argv,
+  defaultOptions: {
+    rsyncPath: '/usr/bin/rsync',
+    source: process.cwd(),
+    verbosity: Logger.LEVEL_INFO
+  },
+  log: new Logger(),
+  options: {}
 };
 
-const log = new Logger();
-const nodeMajorVersion = process.versions.node.split('.', 1)[0];
-
-const cliOptions = yargs
-  .usage('$0', pkg.description)
-  .group([ 'dest', 'source' ], chalk.bold('Primary Options:'))
-
-  .option('dest', {
-    desc: 'Destination to sync files to, as an rsync-compatible path [required]',
-    requiresArg: true,
-    type: 'string'
-  })
-
-  .option('dry-run', {
-    desc: "Show what would've been synced, but don't actually sync it",
-    type: 'boolean'
-  })
-
-  .help('help')
-  .alias('help', 'h')
-
-  .option('ignore-path', {
-    desc: 'Path to a file containing filename and directory patterns to ignore',
-    normalize: true,
-    type: 'string'
-  })
-
-  .option('no-color', {
-    desc: 'Disable colors in CLI output',
-    type: 'boolean'
-  })
-
-  .option('notify', {
-    desc: 'Display a system notification when a sync operation completes or an error occurs',
-    type: 'boolean'
-  })
-
-  .option('once', {
-    desc: 'Sync once and then exit instead of watching for changes',
-    type: 'boolean'
-  })
-
-  .option('rsync-path', {
-    desc: `Path to the rsync executable [default: ${defaultOptions.rsyncPath}]`,
-    normalize: true,
-    requiresArg: true
-  })
-
-  .option('source', {
-    desc: `Local directory to sync files from [default: ${defaultOptions.source}]`,
-    normalize: true,
-    requiresArg: true
-  })
-
-  .option('verbosity', {
-    desc: `Set output verbosity [default: ${defaultOptions.verbosity}]`,
-    choices: [ Logger.LEVEL_DEBUG, Logger.LEVEL_INFO, Logger.LEVEL_WARN, Logger.LEVEL_ERROR ],
-    requiresArg: true
-  })
-
-  .version()
-  .parserConfiguration({
-    'strip-aliased': true,
-    'strip-dashed': true
-  })
-  .updateStrings({
-    'Options:': chalk.bold('Other Options:')
-  })
-  .wrap(yargs.terminalWidth())
-
-  // Backcompat for positional dest and source arguments, like in the old Ruby
-  // version of Synchrotron.
-  .middleware(argv => {
-    if (argv._.length > 0 && !argv.dest) {
-      argv.dest = argv._.shift();
-      log.warn(`Specifying the destination as a positional argument is deprecated. Use the ${chalk.blue('--dest')} option instead.`);
-    }
-
-    if (argv._.length > 0 && (!argv.source || argv.source === process.cwd())) {
-      argv.source = path.normalize(argv._.shift());
-      log.warn(`Specifying the source as a positional argument is deprecated. Use the ${chalk.blue('--source')} option instead.`);
-    }
-  }, true)
-
-  .argv;
-
-process.on('unhandledRejection', reason => {
-  if (reason.code === 'ENOENT'
-      && reason.syscall === 'stat'
-      && nodeMajorVersion === '8') {
-
-    // Node.js 8.x incorrectly stats the destination of symlinks instead of the
-    // links themselves, which can cause Chokidar to throw an error if a link
-    // points to a nonexistent file. This isn't fatal, so don't let it kill the
-    // process.
-    log.warn(reason.message || reason);
-    return;
-  }
-
-  if (cliOptions.notify) {
-    try {
-      notifier.notify({
-        title: 'Synchrotron',
-        message: `Fatal error: ${reason.message || reason}`
-      });
-    } catch (_) {} // eslint-disable-line no-empty
-  }
-
-  log.fatal(reason.message || reason);
-});
-
-main().catch(err => {
-  if (cliOptions.notify) {
-    try {
-      notifier.notify({
-        title: 'Synchrotron',
-        message: `Fatal error: ${err.message || err}`
-      });
-    } catch (_) {} // eslint-disable-line no-empty
-  }
-
-  log.fatal(err.message);
-});
-
 // -- Private Functions --------------------------------------------------------
-async function main() {
+async function main(state) {
   updateNotifier({ pkg }).notify();
+  await addDefaultsToOptions(state);
+  validateOptions(state);
 
-  await addDefaultsToOptions();
-  validateOptions();
+  let { log, options } = state;
+  log.debug('options:', options);
 
-  log.debug('cliOptions:', cliOptions);
-
-  if (cliOptions.dryRun) {
+  if (options.dryRun) {
     log.header('Dry run mode is enabled. Changes will only be simulated.');
   }
 
-  if (cliOptions.ignorePath) {
-    log.header(`Using ignore file ${chalk.blue(cliOptions.ignorePath)}`);
+  if (options.ignorePath) {
+    log.header(`Using ignore file ${chalk.blue(options.ignorePath)}`);
   }
 
-  log.header(`Syncing ${chalk.blue(cliOptions.source)} to ${chalk.blue(cliOptions.dest)}`);
+  log.header(`Syncing ${chalk.blue(options.source)} to ${chalk.blue(options.dest)}`);
 
-  let synchrotron = new Synchrotron(cliOptions.dest, cliOptions.source, {
-    dryRun: cliOptions.dryRun,
-    ignorePath: cliOptions.ignorePath,
+  let synchrotron = new Synchrotron(options.dest, options.source, {
+    dryRun: options.dryRun,
+    ignorePath: options.ignorePath,
     logger: log,
-    rsyncPath: cliOptions.rsyncPath
+    rsyncPath: options.rsyncPath
   });
 
   let spinner = ora();
@@ -204,19 +80,19 @@ async function main() {
     .on('syncEnd', ({ stats }) => {
       spinner.stop();
 
-      if (stats.itemsSynced === 0 && !cliOptions.once) {
+      if (stats.itemsSynced === 0 && !options.once) {
         // Don't report empty syncs, which can occur when changes are detected
         // to paths that are ultimately ignored by rsync.
         return;
       }
 
       let itemsText = stats.itemsSynced === 1 ? 'item' : 'items';
-      log.ok(`${chalk.gray(new Date().toLocaleTimeString())} Synced ${stats.itemsSynced} ${itemsText} to ${chalk.blue(cliOptions.dest)}`);
+      log.ok(`${chalk.gray(new Date().toLocaleTimeString())} Synced ${stats.itemsSynced} ${itemsText} to ${chalk.blue(options.dest)}`);
 
-      if (cliOptions.notify) {
+      if (options.notify) {
         notifier.notify({
           title: 'Synchrotron',
-          message: `Synced ${stats.itemsSynced} ${itemsText} to ${cliOptions.dest}`
+          message: `Synced ${stats.itemsSynced} ${itemsText} to ${options.dest}`
         });
       }
     })
@@ -226,7 +102,7 @@ async function main() {
       log.info(chalk.yellow('!'), message);
     });
 
-  if (!cliOptions.once) {
+  if (!options.once) {
     // Start watching before running the initial sync so that any changes that
     // occur during the initial sync won't be missed.
     synchrotron.watch();
@@ -234,56 +110,191 @@ async function main() {
 
   await synchrotron.sync();
 
-  if (cliOptions.once) {
+  if (options.once) {
     return;
   }
 
-  log.header(`Watching for changes in ${chalk.blue(cliOptions.source)}`);
+  log.header(`Watching for changes in ${chalk.blue(options.source)}`);
 }
 
-async function addDefaultsToOptions() {
-  Object.assign(cliOptions, {
+async function addDefaultsToOptions({ options, defaultOptions, log }) {
+  Object.assign(options, {
     ...defaultOptions,
-    ...cliOptions
+    ...options
   });
 
-  log.threshold = cliOptions.verbosity;
+  log.threshold = options.verbosity;
 
-  if (!cliOptions.ignorePath) {
-    if (cliOptions.excludeFrom) {
+  if (!options.ignorePath) {
+    if (options.excludeFrom) {
       // Ruby Synchrotron backcompat.
       log.warn(`The ${chalk.blue('--exclude-from')} option is deprecated. Use ${chalk.blue('--ignore-path')} instead.`);
-      cliOptions.ignorePath = cliOptions.excludeFrom;
+      options.ignorePath = options.excludeFrom;
     } else {
-      cliOptions.ignorePath = await findUp('.synchrotron-ignore', { cwd: cliOptions.source }); // eslint-disable-line require-atomic-updates
+      options.ignorePath = await findUp('.synchrotron-ignore', { cwd: options.source }); // eslint-disable-line require-atomic-updates
     }
   }
 }
 
-function validateOptions() {
-  if (!cliOptions.dest) {
+function parseCliOptions({ argv, defaultOptions, log }) {
+  return yargs
+    .usage('$0', pkg.description)
+    .group([ 'dest', 'source' ], chalk.bold('Primary Options:'))
+
+    .option('dest', {
+      desc: 'Destination to sync files to, as an rsync-compatible path [required]',
+      requiresArg: true,
+      type: 'string'
+    })
+
+    .option('dry-run', {
+      desc: "Show what would've been synced, but don't actually sync it",
+      type: 'boolean'
+    })
+
+    .help('help')
+    .alias('help', 'h')
+
+    .option('ignore-path', {
+      desc: 'Path to a file containing filename and directory patterns to ignore',
+      normalize: true,
+      type: 'string'
+    })
+
+    .option('no-color', {
+      desc: 'Disable colors in CLI output',
+      type: 'boolean'
+    })
+
+    .option('notify', {
+      desc: 'Display a system notification when a sync operation completes or an error occurs',
+      type: 'boolean'
+    })
+
+    .option('once', {
+      desc: 'Sync once and then exit instead of watching for changes',
+      type: 'boolean'
+    })
+
+    .option('rsync-path', {
+      desc: `Path to the rsync executable [default: ${defaultOptions.rsyncPath}]`,
+      normalize: true,
+      requiresArg: true
+    })
+
+    .option('source', {
+      desc: `Local directory to sync files from [default: ${defaultOptions.source}]`,
+      normalize: true,
+      requiresArg: true
+    })
+
+    .option('verbosity', {
+      desc: `Set output verbosity [default: ${defaultOptions.verbosity}]`,
+      choices: [ Logger.LEVEL_DEBUG, Logger.LEVEL_INFO, Logger.LEVEL_WARN, Logger.LEVEL_ERROR ],
+      requiresArg: true
+    })
+
+    .version()
+    .parserConfiguration({
+      'strip-aliased': true,
+      'strip-dashed': true
+    })
+    .updateStrings({
+      'Options:': chalk.bold('Other Options:')
+    })
+    .wrap(yargs.terminalWidth())
+
+    // Backcompat for positional dest and source arguments, like in the old Ruby
+    // version of Synchrotron.
+    .middleware(args => {
+      if (args._.length > 0 && !args.dest) {
+        args.dest = args._.shift();
+        log.warn(`Specifying the destination as a positional argument is deprecated. Use the ${chalk.blue('--dest')} option instead.`);
+      }
+
+      if (args._.length > 0 && (!args.source || args.source === process.cwd())) {
+        args.source = path.normalize(argv._.shift());
+        log.warn(`Specifying the source as a positional argument is deprecated. Use the ${chalk.blue('--source')} option instead.`);
+      }
+    }, true)
+
+    .parse(argv);
+}
+
+function validateOptions({ log, options }) {
+  if (!options.dest) {
     log.fatal(`No sync destination was specified. Use ${chalk.blue('--dest')} to specify a destination.`);
   }
 
-  if (cliOptions.ignorePath) {
+  if (options.ignorePath) {
+    options.ignorePath = path.resolve(options.ignorePath);
+
     try {
-      fs.accessSync(cliOptions.ignorePath, fs.constants.R_OK);
+      fs.accessSync(options.ignorePath, fs.constants.R_OK);
     } catch (_) {
-      log.fatal(`The ignore file ${chalk.blue(cliOptions.ignorePath)} was not found or is not readable.`);
+      log.fatal(`The ignore file ${chalk.blue(options.ignorePath)} was not found or is not readable.`);
     }
   }
 
-  try {
-    fs.accessSync(cliOptions.rsyncPath, fs.constants.X_OK);
-  } catch (_) {
-    log.fatal(`Rsync path ${chalk.blue(cliOptions.rsyncPath)} was not found or cannot be executed. Use ${chalk.blue('--rsync-path')} to specify the path to an Rsync executable.`);
-  }
-
-  cliOptions.source = path.resolve(cliOptions.source);
+  options.rsyncPath = path.resolve(options.rsyncPath);
 
   try {
-    fs.accessSync(cliOptions.source, fs.constants.R_OK);
+    fs.accessSync(options.rsyncPath, fs.constants.X_OK);
   } catch (_) {
-    log.fatal(`Source directory ${chalk.blue(cliOptions.source)} was not found or is not readable.`);
+    log.fatal(`Rsync path ${chalk.blue(options.rsyncPath)} was not found or cannot be executed. Use ${chalk.blue('--rsync-path')} to specify the path to an Rsync executable.`);
   }
+
+  options.source = path.resolve(options.source);
+
+  try {
+    fs.accessSync(options.source, fs.constants.R_OK);
+  } catch (_) {
+    log.fatal(`Source directory ${chalk.blue(options.source)} was not found or is not readable.`);
+  }
+}
+
+// -- Init ---------------------------------------------------------------------
+if (require.main === module) {
+  const { log } = cliState;
+  const nodeMajorVersion = process.versions.node.split('.', 1)[0];
+
+  cliState.options = parseCliOptions(cliState);
+
+  process.on('unhandledRejection', reason => {
+    if (reason.code === 'ENOENT'
+        && reason.syscall === 'stat'
+        && nodeMajorVersion === '8') {
+
+      // Node.js 8.x incorrectly stats the destination of symlinks instead of the
+      // links themselves, which can cause Chokidar to throw an error if a link
+      // points to a nonexistent file. This isn't fatal, so don't let it kill the
+      // process.
+      log.warn(reason.message || reason);
+      return;
+    }
+
+    if (cliState.options.notify) {
+      try {
+        notifier.notify({
+          title: 'Synchrotron',
+          message: `Fatal error: ${reason.message || reason}`
+        });
+      } catch (_) {} // eslint-disable-line no-empty
+    }
+
+    log.fatal(reason.message || reason);
+  });
+
+  main(cliState).catch(err => {
+    if (cliState.options.notify) {
+      try {
+        notifier.notify({
+          title: 'Synchrotron',
+          message: `Fatal error: ${err.message || err}`
+        });
+      } catch (_) {} // eslint-disable-line no-empty
+    }
+
+    log.fatal(err.message);
+  });
 }
