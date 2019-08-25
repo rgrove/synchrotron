@@ -24,16 +24,22 @@ const cliState = {
     verbosity: Logger.LEVEL_INFO
   },
   log: new Logger(),
-  options: {}
+  options: {},
+  spinner: ora(),
+  syncCount: 0,
+  syncReportDebounceCount: 0,
+  syncReportItemCount: 0,
+  syncReportTimeout: null
 };
 
 // -- Private Functions --------------------------------------------------------
 async function main(state) {
+  let { log, options, spinner } = state;
+
   updateNotifier({ pkg }).notify();
   await addDefaultsToOptions(state);
   validateOptions(state);
 
-  let { log, options } = state;
   log.debug('options:', options);
 
   if (options.dryRun) {
@@ -52,8 +58,6 @@ async function main(state) {
     logger: log,
     rsyncPath: options.rsyncPath
   });
-
-  let spinner = ora();
 
   synchrotron
     .on('debounce', ({ pendingChanges }) => {
@@ -79,6 +83,7 @@ async function main(state) {
 
     .on('syncEnd', ({ stats }) => {
       spinner.stop();
+      state.syncCount += 1;
 
       if (stats.itemsSynced === 0 && !options.once) {
         // Don't report empty syncs, which can occur when changes are detected
@@ -86,15 +91,8 @@ async function main(state) {
         return;
       }
 
-      let itemsText = stats.itemsSynced === 1 ? 'item' : 'items';
-      log.ok(`${chalk.gray(new Date().toLocaleTimeString())} Synced ${stats.itemsSynced} ${itemsText} to ${chalk.blue(options.dest)}`);
-
-      if (options.notify) {
-        notifier.notify({
-          title: 'Synchrotron',
-          message: `Synced ${stats.itemsSynced} ${itemsText} to ${options.dest}`
-        });
-      }
+      state.syncReportItemCount += stats.itemsSynced;
+      scheduleSyncReport(state);
     })
 
     .on('warning', ({ message }) => {
@@ -134,6 +132,29 @@ async function addDefaultsToOptions({ options, defaultOptions, log }) {
       options.ignorePath = await findUp('.synchrotron-ignore', { cwd: options.source }); // eslint-disable-line require-atomic-updates
     }
   }
+}
+
+function logSyncReport(state) {
+  let { log, options, spinner, syncReportItemCount } = state;
+
+  if (syncReportItemCount === 0 && !options.once) {
+    return;
+  }
+
+  let itemsText = syncReportItemCount === 1 ? 'item' : 'items';
+  let timestamp = new Date().toLocaleTimeString();
+
+  spinner.stop();
+  log.ok(`${chalk.gray(timestamp)} Synced ${syncReportItemCount} ${itemsText} to ${chalk.blue(options.dest)}`);
+
+  if (options.notify) {
+    notifier.notify({
+      title: 'Synchrotron',
+      message: `Synced ${syncReportItemCount} ${itemsText} to ${options.dest}`
+    });
+  }
+
+  state.syncReportItemCount = 0;
 }
 
 function parseCliOptions({ argv, defaultOptions, log }) {
@@ -219,6 +240,28 @@ function parseCliOptions({ argv, defaultOptions, log }) {
     }, true)
 
     .parse(argv);
+}
+
+function scheduleSyncReport(state) {
+  if (state.syncCount === 1) {
+    // Always log immediately on the initial sync.
+    return void logSyncReport(state);
+  }
+
+  if (state.syncReportTimeout) {
+    clearTimeout(state.syncReportTimeout);
+    state.syncReportDebounceCount += 1;
+  } else {
+    state.syncReportDebounceCount = 0;
+  }
+
+  // Use exponential backoff to avoid logging sync reports too rapidly.
+  let delay = Math.round(Math.min(2000, 500 * Math.pow(1.5, state.syncReportDebounceCount)));
+
+  state.syncReportTimeout = setTimeout(() => {
+    state.syncReportTimeout = null;
+    logSyncReport(state);
+  }, delay);
 }
 
 function validateOptions({ log, options }) {
