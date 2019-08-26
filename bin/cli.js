@@ -325,7 +325,7 @@ if (require.main === module) {
       } catch (_) {} // eslint-disable-line no-empty
     }
 
-    log.fatal(reason.message || reason);
+    log.fatal(reason);
   });
 
   main(cliState).catch(err => {
@@ -338,6 +338,6 @@ if (require.main === module) {
       } catch (_) {} // eslint-disable-line no-empty
     }
 
-    log.fatal(err.message);
+    log.fatal(err);
   });
 }
