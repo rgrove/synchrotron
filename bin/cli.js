@@ -17,7 +17,7 @@ const Synchrotron = require('../lib/Synchrotron');
 
 // -- Constants ----------------------------------------------------------------
 const cliState = {
-  argv: process.argv,
+  argv: process.argv.slice(2),
   defaultOptions: {
     rsyncPath: '/usr/bin/rsync',
     source: process.cwd(),
@@ -234,7 +234,7 @@ function parseCliOptions({ argv, defaultOptions, log }) {
       }
 
       if (args._.length > 0 && (!args.source || args.source === process.cwd())) {
-        args.source = path.normalize(argv._.shift());
+        args.source = path.normalize(args._.shift());
         log.warn(`Specifying the source as a positional argument is deprecated. Use the ${chalk.blue('--source')} option instead.`);
       }
     }, true)
