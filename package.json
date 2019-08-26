@@ -1,6 +1,6 @@
 {
   "name": "@rgrove/synchrotron",
-  "version": "1.0.0-beta.4",
+  "version": "1.0.0-beta.5",
   "description": "Watches a local directory and syncs files to another directory or a remote destination using rsync whenever changes occur.",
   "keywords": [
     "sync",
