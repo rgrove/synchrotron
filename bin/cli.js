@@ -256,7 +256,7 @@ function scheduleSyncReport(state) {
   }
 
   // Use exponential backoff to avoid logging sync reports too rapidly.
-  let delay = Math.round(Math.min(2000, 500 * Math.pow(1.5, state.syncReportDebounceCount)));
+  let delay = Math.round(Math.min(2000, 1000 * Math.pow(1.2, state.syncReportDebounceCount)));
 
   state.syncReportTimeout = setTimeout(() => {
     state.syncReportTimeout = null;
