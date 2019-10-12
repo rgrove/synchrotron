@@ -26,17 +26,17 @@
   },
   "dependencies": {
     "chalk": "^2.4.2",
-    "chokidar": "^3.0.2",
+    "chokidar": "^3.2.1",
     "find-up": "^4.1.0",
     "graceful-fs": "^4.2.2",
-    "node-notifier": "^5.4.3",
-    "ora": "^3.4.0",
+    "node-notifier": "^6.0.0",
+    "ora": "^4.0.2",
     "update-notifier": "^3.0.1",
-    "yargs": "^14.0.0"
+    "yargs": "^14.2.0"
   },
   "devDependencies": {
-    "@rgrove/eslint-config": "^1.2.0",
-    "eslint": "^6.2.2"
+    "@rgrove/eslint-config": "^1.4.0",
+    "eslint": "^6.5.1"
   },
   "scripts": {
     "lint": "eslint ."
