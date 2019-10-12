@@ -42,7 +42,7 @@ npx @rgrove/synchrotron --help
 
 ## Requirements
 
--   Node.js 10+
+-   Node.js 12+
 -   Rsync 2.6.7+
 -   Tested on macOS. Might work on Linux. Probably won't work on Windows.
 
