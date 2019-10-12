@@ -53,6 +53,7 @@ async function main(state) {
   log.header(`Syncing ${chalk.blue(options.source)} to ${chalk.blue(options.dest)}`);
 
   let synchrotron = new Synchrotron(options.dest, options.source, {
+    deleteIgnored: options.deleteIgnored,
     dryRun: options.dryRun,
     ignorePath: options.ignorePath,
     logger: log,
@@ -166,6 +167,11 @@ function parseCliOptions({ argv, defaultOptions, log }) {
       desc: 'Destination to sync files to, as an rsync-compatible path [required]',
       requiresArg: true,
       type: 'string'
+    })
+
+    .option('delete-ignored', {
+      desc: 'Delete ignored files and directories from the destination',
+      type: 'boolean'
     })
 
     .option('dry-run', {
