@@ -16,6 +16,8 @@ const pkg = require('../package.json');
 const Synchrotron = require('../lib/Synchrotron');
 
 // -- Constants ----------------------------------------------------------------
+const NODE_MINIMUM_MAJOR_VERSION = 12;
+
 const cliState = {
   argv: process.argv.slice(2),
   defaultOptions: {
@@ -35,6 +37,10 @@ const cliState = {
 // -- Private Functions --------------------------------------------------------
 async function main(state) {
   let { log, options, spinner } = state;
+
+  if (!isSupportedNodeVersion(process.version)) {
+    log.fatal(`Node ${process.version} is not supported. Please use Node ${NODE_MINIMUM_MAJOR_VERSION} or higher.`);
+  }
 
   updateNotifier({ pkg }).notify();
   await addDefaultsToOptions(state);
@@ -133,6 +139,11 @@ async function addDefaultsToOptions({ options, defaultOptions, log }) {
       options.ignorePath = await findUp('.synchrotron-ignore', { cwd: options.source }); // eslint-disable-line require-atomic-updates
     }
   }
+}
+
+function isSupportedNodeVersion(version) {
+  let majorVersion = parseInt(version.replace('v', ''), 10);
+  return majorVersion >= NODE_MINIMUM_MAJOR_VERSION;
 }
 
 function logSyncReport(state) {
