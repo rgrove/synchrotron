@@ -9,6 +9,7 @@ const fs = require('graceful-fs');
 const notifier = require('node-notifier');
 const ora = require('ora');
 const updateNotifier = require('update-notifier');
+const which = require('which');
 const yargs = require('yargs');
 
 const Logger = require('../lib/Logger');
@@ -21,7 +22,6 @@ const NODE_MINIMUM_MAJOR_VERSION = 12;
 const cliState = {
   argv: process.argv.slice(2),
   defaultOptions: {
-    rsyncPath: '/usr/bin/rsync',
     source: process.cwd(),
     verbosity: Logger.LEVEL_INFO
   },
@@ -139,6 +139,15 @@ async function addDefaultsToOptions({ options, defaultOptions, log }) {
       options.ignorePath = await findUp('.synchrotron-ignore', { cwd: options.source }); // eslint-disable-line require-atomic-updates
     }
   }
+
+  if (!options.rsyncPath) {
+    try {
+      options.rsyncPath = await which('rsync'); // eslint-disable-line require-atomic-updates
+      log.debug(`Found rsync at ${options.rsyncPath}`);
+    } catch (err) {
+      log.fatal(`Couldn't find an rsync executable. Please use ${chalk.blue('--rsync-path')} to specify the path to rsync.`);
+    }
+  }
 }
 
 function isSupportedNodeVersion(version) {
@@ -215,7 +224,7 @@ function parseCliOptions({ argv, defaultOptions, log }) {
     })
 
     .option('rsync-path', {
-      desc: `Path to the rsync executable [default: ${defaultOptions.rsyncPath}]`,
+      desc: `Path to the rsync executable [default: rsync]`,
       normalize: true,
       requiresArg: true
     })
@@ -301,7 +310,7 @@ function validateOptions({ log, options }) {
   try {
     fs.accessSync(options.rsyncPath, fs.constants.X_OK);
   } catch (_) {
-    log.fatal(`Rsync path ${chalk.blue(options.rsyncPath)} was not found or cannot be executed. Use ${chalk.blue('--rsync-path')} to specify the path to an Rsync executable.`);
+    log.fatal(`Rsync path ${chalk.blue(options.rsyncPath)} was not found or cannot be executed. Use ${chalk.blue('--rsync-path')} to specify the path to an rsync executable.`);
   }
 
   options.source = path.resolve(options.source);
