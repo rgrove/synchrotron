@@ -25,19 +25,19 @@
     "synchrotron": "./bin/cli.js"
   },
   "dependencies": {
-    "chalk": "^2.4.2",
-    "chokidar": "^3.2.2",
+    "chalk": "^4.0.0",
+    "chokidar": "^3.3.1",
     "find-up": "^4.1.0",
-    "graceful-fs": "^4.2.2",
-    "node-notifier": "^6.0.0",
-    "ora": "^4.0.2",
-    "update-notifier": "^3.0.1",
-    "which": "^2.0.1",
-    "yargs": "^14.2.0"
+    "graceful-fs": "^4.2.3",
+    "node-notifier": "^7.0.0",
+    "ora": "^4.0.3",
+    "update-notifier": "^4.1.0",
+    "which": "^2.0.2",
+    "yargs": "^15.3.1"
   },
   "devDependencies": {
-    "@rgrove/eslint-config": "^1.4.0",
-    "eslint": "^6.5.1"
+    "@rgrove/eslint-config": "^1.5.0",
+    "eslint": "^6.8.0"
   },
   "scripts": {
     "lint": "eslint ."
