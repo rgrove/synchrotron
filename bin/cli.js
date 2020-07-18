@@ -74,14 +74,14 @@ async function main(state) {
       });
     })
 
-    .on('rsyncStderr', ({ line }) => {
+    .on('rsyncStderr', ({ level, line }) => {
       spinner.stop();
-      log.info(chalk.yellow('!'), line);
+      log.log(level, chalk.yellow('!'), line);
     })
 
-    .on('rsyncStdout', ({ label, message }) => {
+    .on('rsyncStdout', ({ label, level, message }) => {
       spinner.stop();
-      log.info(label, chalk.gray(message));
+      log.log(level, label, chalk.gray(message));
     })
 
     .on('syncStart', () => {
@@ -104,7 +104,7 @@ async function main(state) {
 
     .on('warning', ({ message }) => {
       spinner.stop();
-      log.info(chalk.yellow('!'), message);
+      log.warn(chalk.yellow('!'), message);
     });
 
   if (!options.once) {
