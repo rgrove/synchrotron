@@ -8,7 +8,6 @@ const findUp = require('find-up');
 const fs = require('graceful-fs');
 const notifier = require('node-notifier');
 const ora = require('ora');
-const updateNotifier = require('update-notifier');
 const which = require('which');
 const yargs = require('yargs');
 
@@ -42,7 +41,6 @@ async function main(state) {
     log.fatal(`Node ${process.version} is not supported. Please use Node ${NODE_MINIMUM_MAJOR_VERSION} or higher.`);
   }
 
-  updateNotifier({ pkg }).notify();
   await addDefaultsToOptions(state);
   validateOptions(state);
 

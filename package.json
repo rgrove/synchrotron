@@ -31,7 +31,6 @@
     "graceful-fs": "^4.2.4",
     "node-notifier": "^7.0.1",
     "ora": "^4.0.5",
-    "update-notifier": "^4.1.0",
     "which": "^2.0.2",
     "yargs": "^15.4.1"
   },
