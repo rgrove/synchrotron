@@ -242,7 +242,7 @@ function parseCliOptions({ argv, defaultOptions, log }) {
       requiresArg: true,
     })
 
-    .version()
+    .version(pkg.version)
     .parserConfiguration({
       'strip-aliased': true,
       'strip-dashed': true,
