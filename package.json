@@ -25,14 +25,14 @@
     "synchrotron": "./bin/cli.js"
   },
   "dependencies": {
-    "chalk": "^4.1.1",
-    "chokidar": "^3.5.2",
+    "chalk": "^4.1.2",
+    "chokidar": "^3.5.3",
     "find-up": "^5.0.0",
-    "graceful-fs": "^4.2.6",
-    "node-notifier": "^10.0.0",
+    "graceful-fs": "^4.2.9",
+    "node-notifier": "^10.0.1",
     "ora": "^5.4.1",
     "which": "^2.0.2",
-    "yargs": "^17.0.1"
+    "yargs": "^17.4.0"
   },
   "devDependencies": {
     "@rgrove/eslint-config": "^4.0.0",
