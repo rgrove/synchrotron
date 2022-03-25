@@ -35,8 +35,8 @@
     "yargs": "^17.0.1"
   },
   "devDependencies": {
-    "@rgrove/eslint-config": "2.0.0",
-    "eslint": "^7.29.0"
+    "@rgrove/eslint-config": "^4.0.0",
+    "eslint": "^8.11.0"
   },
   "scripts": {
     "lint": "eslint ."

@@ -22,7 +22,7 @@ const cliState = {
   argv: process.argv.slice(2),
   defaultOptions: {
     source: process.cwd(),
-    verbosity: Logger.LEVEL_INFO
+    verbosity: Logger.LEVEL_INFO,
   },
   log: new Logger(),
   options: {},
@@ -30,7 +30,7 @@ const cliState = {
   syncCount: 0,
   syncReportDebounceCount: 0,
   syncReportItemCount: 0,
-  syncReportTimeout: null
+  syncReportTimeout: null,
 };
 
 // -- Private Functions --------------------------------------------------------
@@ -61,7 +61,7 @@ async function main(state) {
     dryRun: options.dryRun,
     ignorePath: options.ignorePath,
     logger: log,
-    rsyncPath: options.rsyncPath
+    rsyncPath: options.rsyncPath,
   });
 
   synchrotron
@@ -123,7 +123,7 @@ async function main(state) {
 async function addDefaultsToOptions({ options, defaultOptions, log }) {
   Object.assign(options, {
     ...defaultOptions,
-    ...options
+    ...options,
   });
 
   log.threshold = options.verbosity;
@@ -169,7 +169,7 @@ function logSyncReport(state) {
   if (options.notify) {
     notifier.notify({
       title: 'Synchrotron',
-      message: `Synced ${syncReportItemCount} ${itemsText} to ${options.dest}`
+      message: `Synced ${syncReportItemCount} ${itemsText} to ${options.dest}`,
     });
   }
 
@@ -184,17 +184,17 @@ function parseCliOptions({ argv, defaultOptions, log }) {
     .option('dest', {
       desc: 'Destination to sync files to, as an rsync-compatible path [required]',
       requiresArg: true,
-      type: 'string'
+      type: 'string',
     })
 
     .option('delete-ignored', {
       desc: 'Delete ignored files and directories from the destination',
-      type: 'boolean'
+      type: 'boolean',
     })
 
     .option('dry-run', {
       desc: "Show what would've been synced, but don't actually sync it",
-      type: 'boolean'
+      type: 'boolean',
     })
 
     .help('help')
@@ -203,49 +203,49 @@ function parseCliOptions({ argv, defaultOptions, log }) {
     .option('ignore-path', {
       desc: 'Path to a file containing filename and directory patterns to ignore',
       normalize: true,
-      type: 'string'
+      type: 'string',
     })
 
     .option('no-color', {
       desc: 'Disable colors in CLI output',
-      type: 'boolean'
+      type: 'boolean',
     })
 
     .option('notify', {
       desc: 'Display a system notification when a sync operation completes or an error occurs',
-      type: 'boolean'
+      type: 'boolean',
     })
 
     .option('once', {
       desc: 'Sync once and then exit instead of watching for changes',
-      type: 'boolean'
+      type: 'boolean',
     })
 
     .option('rsync-path', {
       desc: `Path to the rsync executable [default: rsync]`,
       normalize: true,
-      requiresArg: true
+      requiresArg: true,
     })
 
     .option('source', {
       desc: `Local directory to sync files from [default: ${defaultOptions.source}]`,
       normalize: true,
-      requiresArg: true
+      requiresArg: true,
     })
 
     .option('verbosity', {
       desc: `Set output verbosity [default: ${defaultOptions.verbosity}]`,
       choices: [ Logger.LEVEL_DEBUG, Logger.LEVEL_INFO, Logger.LEVEL_WARN, Logger.LEVEL_ERROR ],
-      requiresArg: true
+      requiresArg: true,
     })
 
     .version()
     .parserConfiguration({
       'strip-aliased': true,
-      'strip-dashed': true
+      'strip-dashed': true,
     })
     .updateStrings({
-      'Options:': chalk.bold('Other Options:')
+      'Options:': chalk.bold('Other Options:'),
     })
     .wrap(yargs.terminalWidth())
 
@@ -344,7 +344,7 @@ if (require.main === module) {
       try {
         notifier.notify({
           title: 'Synchrotron',
-          message: `Fatal error: ${reason.message || reason}`
+          message: `Fatal error: ${reason.message || reason}`,
         });
       } catch (_) {} // eslint-disable-line no-empty
     }
@@ -357,7 +357,7 @@ if (require.main === module) {
       try {
         notifier.notify({
           title: 'Synchrotron',
-          message: `Fatal error: ${err.message || err}`
+          message: `Fatal error: ${err.message || err}`,
         });
       } catch (_) {} // eslint-disable-line no-empty
     }
