@@ -20,23 +20,32 @@
   "engines": {
     "node": ">=12"
   },
-  "main": "lib/Synchrotron.js",
+  "exports": "./lib/Synchrotron.mjs",
+  "main": "./lib/Synchrotron.mjs",
   "bin": {
-    "synchrotron": "./bin/cli.js"
+    "synchrotron": "bin/cli.mjs"
   },
+  "files": [
+    "bin/",
+    "lib/"
+  ],
   "dependencies": {
-    "chalk": "^4.1.2",
+    "chalk": "^5.0.1",
     "chokidar": "^3.5.3",
-    "find-up": "^5.0.0",
+    "find-up": "^6.3.0",
     "graceful-fs": "^4.2.9",
     "node-notifier": "^10.0.1",
-    "ora": "^5.4.1",
+    "ora": "^6.1.0",
     "which": "^2.0.2",
     "yargs": "^17.4.0"
   },
   "devDependencies": {
     "@rgrove/eslint-config": "^4.0.0",
-    "eslint": "^8.11.0"
+    "eslint": "^8.11.0",
+    "eslint-plugin-import": "^2.25.4",
+    "eslint-plugin-react": "^7.29.4",
+    "eslint-plugin-react-hooks": "^4.3.0",
+    "eslint-plugin-security": "^1.4.0"
   },
   "scripts": {
     "lint": "eslint ."

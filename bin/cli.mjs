@@ -1,23 +1,21 @@
 #!/usr/bin/env node
-'use strict';
+import { createRequire } from 'module';
+import path from 'path';
 
-const path = require('path');
+import { findUp } from 'find-up';
+import chalk from 'chalk';
+import fs from 'graceful-fs';
+import notifier from 'node-notifier';
+import ora from 'ora';
+import which from 'which';
+import yargs from 'yargs';
 
-const chalk = require('chalk');
-const findUp = require('find-up');
-const fs = require('graceful-fs');
-const notifier = require('node-notifier');
-const ora = require('ora');
-const which = require('which');
-const yargs = require('yargs');
+import Logger from '../lib/Logger.mjs';
+import Synchrotron from '../lib/Synchrotron.mjs';
 
-const Logger = require('../lib/Logger');
-const pkg = require('../package.json');
-const Synchrotron = require('../lib/Synchrotron');
+const pkg = createRequire(import.meta.url)('../package.json');
 
 // -- Constants ----------------------------------------------------------------
-const NODE_MINIMUM_MAJOR_VERSION = 12;
-
 const cliState = {
   argv: process.argv.slice(2),
   defaultOptions: {
@@ -33,12 +31,14 @@ const cliState = {
   syncReportTimeout: null,
 };
 
+const nodeMinimumMajorVersion = 12;
+
 // -- Private Functions --------------------------------------------------------
 async function main(state) {
   let { log, options, spinner } = state;
 
   if (!isSupportedNodeVersion(process.version)) {
-    log.fatal(`Node ${process.version} is not supported. Please use Node ${NODE_MINIMUM_MAJOR_VERSION} or higher.`);
+    log.fatal(`Node ${process.version} is not supported. Please use Node ${nodeMinimumMajorVersion} or higher.`);
   }
 
   await addDefaultsToOptions(state);
@@ -150,7 +150,7 @@ async function addDefaultsToOptions({ options, defaultOptions, log }) {
 
 function isSupportedNodeVersion(version) {
   let majorVersion = parseInt(version.replace('v', ''), 10);
-  return majorVersion >= NODE_MINIMUM_MAJOR_VERSION;
+  return majorVersion >= nodeMinimumMajorVersion;
 }
 
 function logSyncReport(state) {
@@ -177,7 +177,10 @@ function logSyncReport(state) {
 }
 
 function parseCliOptions({ argv, defaultOptions, log }) {
-  return yargs
+  /** @type {yargs} */
+  let y = yargs();
+
+  return y
     .usage('$0', pkg.description)
     .group([ 'dest', 'source' ], chalk.bold('Primary Options:'))
 
@@ -247,7 +250,7 @@ function parseCliOptions({ argv, defaultOptions, log }) {
     .updateStrings({
       'Options:': chalk.bold('Other Options:'),
     })
-    .wrap(yargs.terminalWidth())
+    .wrap(y.terminalWidth())
 
     // Backcompat for positional dest and source arguments, like in the old Ruby
     // version of Synchrotron.
@@ -321,47 +324,32 @@ function validateOptions({ log, options }) {
 }
 
 // -- Init ---------------------------------------------------------------------
-if (require.main === module) {
-  const { log } = cliState;
-  const nodeMajorVersion = process.versions.node.split('.', 1)[0];
+let { log } = cliState;
 
-  cliState.options = parseCliOptions(cliState);
+cliState.options = parseCliOptions(cliState);
 
-  process.on('unhandledRejection', reason => {
-    if (reason.code === 'ENOENT'
-        && reason.syscall === 'stat'
-        && nodeMajorVersion === '8') {
+process.on('unhandledRejection', reason => {
+  if (cliState.options.notify) {
+    try {
+      notifier.notify({
+        title: 'Synchrotron',
+        message: `Fatal error: ${/** @type {any} */ (reason)?.message || reason}`,
+      });
+    } catch (_) {} // eslint-disable-line no-empty
+  }
 
-      // Node.js 8.x incorrectly stats the destination of symlinks instead of the
-      // links themselves, which can cause Chokidar to throw an error if a link
-      // points to a nonexistent file. This isn't fatal, so don't let it kill the
-      // process.
-      log.warn(reason.message || reason);
-      return;
-    }
+  log.fatal(reason);
+});
 
-    if (cliState.options.notify) {
-      try {
-        notifier.notify({
-          title: 'Synchrotron',
-          message: `Fatal error: ${reason.message || reason}`,
-        });
-      } catch (_) {} // eslint-disable-line no-empty
-    }
+main(cliState).catch(err => {
+  if (cliState.options.notify) {
+    try {
+      notifier.notify({
+        title: 'Synchrotron',
+        message: `Fatal error: ${err.message || err}`,
+      });
+    } catch (_) {} // eslint-disable-line no-empty
+  }
 
-    log.fatal(reason);
-  });
-
-  main(cliState).catch(err => {
-    if (cliState.options.notify) {
-      try {
-        notifier.notify({
-          title: 'Synchrotron',
-          message: `Fatal error: ${err.message || err}`,
-        });
-      } catch (_) {} // eslint-disable-line no-empty
-    }
-
-    log.fatal(err);
-  });
-}
+  log.fatal(err);
+});
