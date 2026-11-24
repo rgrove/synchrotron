@@ -23,6 +23,7 @@ const cliState = {
     verbosity: Logger.LEVEL_INFO,
   },
   log: new Logger(),
+  notifyPermissionWarned: false,
   options: {},
   spinner: ora(),
   syncCount: 0,
@@ -167,13 +168,46 @@ function logSyncReport(state) {
   log.ok(`${chalk.gray(timestamp)} Synced ${syncReportItemCount} ${itemsText} to ${chalk.blue(options.dest)}`);
 
   if (options.notify) {
-    notifier.notify({
-      title: 'Synchrotron',
-      message: `Synced ${syncReportItemCount} ${itemsText} to ${options.dest}`,
-    });
+    notify(state, `Synced ${syncReportItemCount} ${itemsText} to ${options.dest}`);
   }
 
   state.syncReportItemCount = 0;
+}
+
+function notify(state, message) {
+  notifier.notify({ title: 'Synchrotron', message }, err => {
+    if (!err) {
+      return;
+    }
+
+    // terminal-notifier reports one of these on stderr when macOS hasn't
+    // granted it permission or the user turned notifications off for it.
+    // node-notifier passes an Error for a non-zero exit, or the bare stderr
+    // string otherwise.
+    let text = String(err.message || err);
+
+    if (process.platform === 'darwin' && /Notifications are (not allowed|turned off)|notifications was declined/.test(text)) {
+      if (!state.notifyPermissionWarned) {
+        state.notifyPermissionWarned = true;
+        let appPath = getTerminalNotifierAppPath();
+        let where = appPath ? `, which lives at ${chalk.blue(appPath)}` : '';
+
+        state.spinner.stop();
+        state.log.warn(`macOS blocked the notification. Allow notifications for terminal-notifier${where}. See "macOS Notifications" in the README: ${pkg.homepage.replace(/#.*$/, '')}#macos-notifications`);
+      }
+    } else {
+      state.log.debug('Notification failed:', text);
+    }
+  });
+}
+
+function getTerminalNotifierAppPath() {
+  let appPath = path.join(
+    path.dirname(createRequire(import.meta.url).resolve('node-notifier/package.json')),
+    'vendor/mac.noindex/terminal-notifier.app',
+  );
+
+  return fs.existsSync(appPath) ? appPath : null;
 }
 
 function parseCliOptions({ argv, defaultOptions, log }) {
@@ -331,10 +365,7 @@ cliState.options = parseCliOptions(cliState);
 process.on('unhandledRejection', reason => {
   if (cliState.options.notify) {
     try {
-      notifier.notify({
-        title: 'Synchrotron',
-        message: `Fatal error: ${/** @type {any} */ (reason)?.message || reason}`,
-      });
+      notify(cliState, `Fatal error: ${/** @type {any} */ (reason)?.message || reason}`);
     } catch (_) {} // eslint-disable-line no-empty
   }
 
@@ -344,10 +375,7 @@ process.on('unhandledRejection', reason => {
 main(cliState).catch(err => {
   if (cliState.options.notify) {
     try {
-      notifier.notify({
-        title: 'Synchrotron',
-        message: `Fatal error: ${err.message || err}`,
-      });
+      notify(cliState, `Fatal error: ${err.message || err}`);
     } catch (_) {} // eslint-disable-line no-empty
   }
 
