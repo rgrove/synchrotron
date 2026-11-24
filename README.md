@@ -102,6 +102,22 @@ See the [rsync man page][rsync-man-page] for more details.
 
 [rsync-man-page]:https://download.samba.org/pub/rsync/rsync.html
 
+## macOS Notifications
+
+The `--notify` option shows a system notification when a sync finishes or fails. On macOS, Synchrotron shows these notifications through a small helper app called `terminal-notifier.app`, which comes bundled with the [node-notifier](https://github.com/mikaelbr/node-notifier) package.
+
+Before macOS will show notifications from an app, you have to allow it, and macOS only asks for that permission when the app is launched like a normal app (from Finder, the Dock, or the `open` command). Synchrotron runs the helper directly instead, and the helper lives deep inside a `node_modules` directory that macOS never adds to its list of apps. So macOS never asks, and it silently blocks every notification. When this happens, Synchrotron logs a warning like this once per run:
+
+```
+macOS blocked the notification. Allow notifications for terminal-notifier, which lives at /path/to/node_modules/node-notifier/vendor/mac.noindex/terminal-notifier.app. ...
+```
+
+You only need to fix this once per computer. If macOS shows a prompt asking whether terminal-notifier may send notifications (this can happen if the app was registered with macOS before), click **Allow** and you're done. If you clicked **Don't Allow** at some point, macOS won't ask again: open **System Settings** › **Notifications** › **terminal-notifier** and turn on **Allow notifications**.
+
+### If macOS never shows a prompt
+
+Follow the steps in [Enable macOS Notifications](enable-macos-notifications.md) to register the helper app with macOS and allow its notifications. That document also explains how to undo the change.
+
 ## Contributing
 
 PRs with bug fixes are welcome!
